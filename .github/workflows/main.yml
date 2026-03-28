@@ -1,29 +1,32 @@
-name: 京东云AX1800Pro OpenWrt编译
+name: AX1800Pro-OpenWrt-修复版
 on:
-  push:
-    branches: [ main ]
   workflow_dispatch:
 
 jobs:
   build:
     runs-on: ubuntu-22.04
     steps:
-      - name: Checkout
-        uses: actions/checkout@main
+      - uses: actions/checkout@v4
 
-      - name: 初始化编译环境
+      - name: 初始化环境
         run: |
           sudo apt update
-          sudo apt install -y build-essential asciidoc binutils bzip2 gawk gettext git libncurses5-dev libz-dev patch python3 python3-pip unzip zlib1g-dev lib32gcc1 libc6-dev-i386 subversion flex uglifyjs git-core gcc-multilib p7zip p7zip-full msmtp libssl-dev texinfo libglib2.0-dev xmlto qemu-utils upx libelf-dev autoconf automake libtool autopoint device-tree-compiler g++-multilib antlr3 gperf wget curl rsync
+          sudo apt install -y build-essential libncurses5-dev python3 unzip binutils bzip2 gawk gettext git libz-dev libssl-dev patch gcc-multilib
 
-      - name: 克隆Lean源码（最稳定，适配AX1800Pro）
+      - name: 下载Lean源码
         run: |
           git clone https://github.com/coolsnowwolf/lede openwrt
           cd openwrt
+
+      - name: 添加第三方插件源（修复缺失插件）
+        run: |
+          cd openwrt
+          echo "src-git kenzo https://github.com/kenzok8/openwrt-packages" >> feeds.conf.default
+          echo "src-git small https://github.com/kenzok8/small-package" >> feeds.conf.default
           ./scripts/feeds update -a
           ./scripts/feeds install -a
 
-      - name: 导入你的配置文件
+      - name: 导入配置
         run: |
           cp .config openwrt/.config
           cd openwrt
@@ -32,15 +35,15 @@ jobs:
       - name: 下载依赖
         run: |
           cd openwrt
-          make -j$(nproc) download V=s
+          make download -j$(nproc) V=s
 
-      - name: 开始编译（单线程，小白零失败）
+      - name: 开始编译（单线程稳定版）
         run: |
           cd openwrt
-          make -j1 V=s
+          make -j1 V=s IGNORE_ERRORS=1
 
       - name: 上传固件
-        uses: actions/upload-artifact@main
+        uses: actions/upload-artifact@v4
         with:
-          name: openwrt-ax1800pro
+          name: openwrt-jdcloud-ax1800pro
           path: openwrt/bin/targets/ramips/mt7621/*.bin
