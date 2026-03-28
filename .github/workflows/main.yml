@@ -1,0 +1,46 @@
+name: 京东云AX1800Pro OpenWrt编译
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Checkout
+        uses: actions/checkout@main
+
+      - name: 初始化编译环境
+        run: |
+          sudo apt update
+          sudo apt install -y build-essential asciidoc binutils bzip2 gawk gettext git libncurses5-dev libz-dev patch python3 python3-pip unzip zlib1g-dev lib32gcc1 libc6-dev-i386 subversion flex uglifyjs git-core gcc-multilib p7zip p7zip-full msmtp libssl-dev texinfo libglib2.0-dev xmlto qemu-utils upx libelf-dev autoconf automake libtool autopoint device-tree-compiler g++-multilib antlr3 gperf wget curl rsync
+
+      - name: 克隆Lean源码（最稳定，适配AX1800Pro）
+        run: |
+          git clone https://github.com/coolsnowwolf/lede openwrt
+          cd openwrt
+          ./scripts/feeds update -a
+          ./scripts/feeds install -a
+
+      - name: 导入你的配置文件
+        run: |
+          cp .config openwrt/.config
+          cd openwrt
+          make defconfig
+
+      - name: 下载依赖
+        run: |
+          cd openwrt
+          make -j$(nproc) download V=s
+
+      - name: 开始编译（单线程，小白零失败）
+        run: |
+          cd openwrt
+          make -j1 V=s
+
+      - name: 上传固件
+        uses: actions/upload-artifact@main
+        with:
+          name: openwrt-ax1800pro
+          path: openwrt/bin/targets/ramips/mt7621/*.bin
