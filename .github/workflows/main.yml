@@ -1,9 +1,6 @@
-name: AX1800Pro-OpenWrt-完整不简化-最后兜底版
+name: AX1800Pro-IPQ6000-128G-完整版
 on:
   workflow_dispatch:
-
-env:
-  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
 jobs:
   build:
@@ -11,41 +8,41 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: 初始化编译环境
+      - name: 安装编译环境
         run: |
-          sudo apt update -y || true
-          sudo apt install -y build-essential libncurses5-dev python3 unzip binutils bzip2 gawk gettext git libz-dev libssl-dev patch gcc-multilib p7zip-full || true
+          sudo apt update
+          sudo apt install -y build-essential libncurses5-dev python3 unzip binutils bzip2 gawk gettext git libz-dev libssl-dev patch gcc-multilib
 
-      - name: 克隆Lean源码
+      - name: 克隆iStoreOS源码（最适合IPQ6000+128G）
         run: |
-          git clone https://github.com/coolsnowwolf/lede openwrt || true
+          git clone https://github.com/istoreos/istoreos openwrt
 
-      - name: 添加插件源并更新
+      - name: 添加插件源
         run: |
-          cd openwrt || exit 0
-          echo "src-git kenzo https://github.com/kenzok8/openwrt-packages" >> feeds.conf.default || true
-          echo "src-git small https://github.com/kenzok8/small-package" >> feeds.conf.default || true
-          ./scripts/feeds update -a || true
-          ./scripts/feeds install -a || true
+          cd openwrt
+          echo "src-git kenzo https://github.com/kenzok8/openwrt-packages" >> feeds.conf.default
+          echo "src-git small https://github.com/kenzok8/small" >> feeds.conf.default
+          ./scripts/feeds update -a
+          ./scripts/feeds install -a
 
       - name: 导入配置
         run: |
-          cp .config openwrt/.config || true
-          cd openwrt || exit 0
-          make defconfig || true
+          cp .config openwrt/.config
+          cd openwrt
+          make defconfig
 
-      - name: 下载编译依赖
+      - name: 下载依赖
         run: |
-          cd openwrt || exit 0
-          make download -j$(nproc) V=s || true
+          cd openwrt
+          make download -j$(nproc) V=s
 
-      - name: 开始编译（强制忽略所有错误）
+      - name: 开始编译
         run: |
-          cd openwrt || exit 0
-          make -j1 V=s IGNORE_ERRORS=1 || true
+          cd openwrt
+          make -j1 V=s IGNORE_ERRORS=1
 
       - name: 上传固件
         uses: actions/upload-artifact@v4
         with:
-          name: openwrt-jdcloud-ax1800pro-full
-          path: openwrt/bin/targets/ramips/mt7621/*.bin
+          name: AX1800Pro-IPQ6000-128G
+          path: openwrt/bin/targets/qualcommax/ipq60xx/*.bin
